@@ -1,42 +1,32 @@
-name: Python application
+name: Docker CI
 
 on:
   push:
-    branches: [ jordan ]
-
-permissions:
-  contents: read
-  packages: write   # NECESARIO PARA SUBIR A GHCR
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.11"
-
-      # Instalar dependencias (sin pytest)
-      - name: Instalar dependencias
-        run: |
-          pip install -r requirements.txt
-
-      - name: 🔐 Login to GitHub Container Registry (GITHUB_TOKEN)
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🏗️ Build and push Docker image
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile
           push: true
           tags: ghcr.io/jordan05/jordan:1.0.5
 
