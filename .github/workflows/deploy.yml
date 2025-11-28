@@ -38,7 +38,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/Jordan05/jordan:1.0.5
+          tags: ghcr.io/jordan05/jordan:1.0.5
 
       - name: Mostrar variables basicas
         run: |
@@ -80,10 +80,10 @@ jobs:
             cd ~/despliegue
 
             # Login manual al GHCR con tu PAT
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u Jordan05 --password-stdin
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u jordan05 --password-stdin
 
             # Pull de la imagen CORRECTA
-            docker pull ghcr.io/Jordan05/jordan:1.0.5
+            docker pull ghcr.io/jordan05/jordan:1.0.5
 
             # Eliminar stack anterior
             docker stack rm jordan || true
