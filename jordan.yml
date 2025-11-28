@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  jordan:
+    image: ghcr.io/jordan05/jordan:1.0.5
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.jordan.entrypoints=http"
+        - "traefik.http.routers.jordan.rule=Host(`jordan.byronrm.com`)"
+        - "traefik.http.middlewares.jordan-https-redirect.redirectscheme.scheme=https"
+        - "traefik.http.routers.jordan.middlewares=jordan-https-redirect"
+        - "traefik.http.routers.jordan-secure.entrypoints=https"
+        - "traefik.http.routers.jordan-secure.rule=Host(`jordan.byronrm.com`)"
+        - "traefik.http.routers.jordan-secure.tls=true"
+        - "traefik.http.routers.jordan-secure.tls.certresolver=http"
+        - "traefik.http.routers.jordan-secure.service=jordan"
+        - "traefik.http.services.jordan.loadbalancer.server.port=5000"
+        - "traefik.docker.network=traefik-public"
+
+    networks:
+      - traefik-public
+
+networks:
+  traefik-public:
+    external: true

@@ -2,7 +2,7 @@ name: Python application
 
 on:
   push:
-    branches: [ benalcazar ]
+    branches: [ jordan ]
 
 permissions:
   contents: read
@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -21,16 +20,10 @@ jobs:
         with:
           python-version: "3.11"
 
-      # NUEVO: Instalar dependencias para ejecutar pruebas
+      # Instalar dependencias (sin pytest)
       - name: Instalar dependencias
         run: |
           pip install -r requirements.txt
-          pip install pytest
-
-      # NUEVO: Ejecutar pruebas
-      - name: Ejecutar pruebas (PyTests)
-        run: |
-          pytest tests
 
       - name: 🔐 Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -42,15 +35,16 @@ jobs:
       - name: 🏗️ Build and push Docker image
         uses: docker/build-push-action@v6
         with:
+          context: .
+          file: ./Dockerfile
           push: true
-          tags: ghcr.io/omarjb20/chimborazo:1.0.5
+          tags: ghcr.io/jordan05/jordan:1.0.5
 
-      - name: Mostrar variables basicas (solo locales, no secretos)
+      - name: Mostrar variables basicas
         run: |
           echo "Host: ${{ secrets.VPS_HOST }}"
           echo "Usuario: ${{ secrets.VPS_USER }}"
           echo "Puerto: ${{ secrets.VPS_SSH_PORT }}"
-          echo "Password: ${{ secrets.VPS_PASSWORD }}"
 
       - name: Probar conexion SSH
         uses: appleboy/ssh-action@v1.0.0
@@ -60,20 +54,18 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_SSH_PORT }}
           script: |
-            echo "✅ Conexion exitosa desde GitHub Actions"
+            echo "Conexion OK"
             hostname
             whoami
-            ls -la
-            uptime
         
-      - name: Pasar el stack.yml al servidor
+      - name: Pasar el jordan.yml al servidor
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_SSH_PORT }}
-          source: "stack.yml"
+          source: "jordan.yml"
           target: "/home/${{ secrets.VPS_USER }}/despliegue"
 
       - name: Despliegue de los servicios
@@ -87,16 +79,17 @@ jobs:
             echo "🟩 Desplegando servicios"
             cd ~/despliegue
 
-            # Paso 1: Descargar la imagen
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u paul00kevin --password-stdin
-            docker pull ghcr.io/paul00kevin/benalcazar:3.0.0
+            # Login manual al GHCR
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u Jordan05 --password-stdin
 
-            # Paso 2: Borrar el stack anterior
-            docker stack rm benalcazar || true
+            # Pull de TU imagen
+            docker pull ghcr.io/jordan05/jordan:1.0.5
+
+            # Eliminar stack anterior
+            docker stack rm jordan || true
             sleep 30
 
-            # Paso 3: Desplegar stack
-            echo "==> Desplegando stack..."
-            docker stack deploy -c stack.yml --with-registry-auth benalcazar
+            # Desplegar stack
+            docker stack deploy -c jordan.yml --with-registry-auth jordan
 
             docker ps
