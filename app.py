@@ -12,7 +12,7 @@ responses = [
 
 @app.route("/")
 def home():
-    return "Hola mundo"
+    return "Mi nombre es Yavirac010 y esta es mi aplicación de recuperación final."
 
 @app.route("/ia", methods=["POST"])
 def ia():
