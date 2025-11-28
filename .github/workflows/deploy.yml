@@ -77,3 +77,6 @@ jobs:
             docker stack deploy -c jordan.yml --with-registry-auth jordan
 
             docker ps
+
+
+#ultima linea del archivo
