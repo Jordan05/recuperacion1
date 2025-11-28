@@ -2,7 +2,7 @@ name: Docker CI
 #corregido
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "jordan" ]
 
 jobs:
   build:
