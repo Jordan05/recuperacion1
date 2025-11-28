@@ -1,0 +1,102 @@
+name: Python application
+
+on:
+  push:
+    branches: [ benalcazar ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.11"
+
+      # NUEVO: Instalar dependencias para ejecutar pruebas
+      - name: Instalar dependencias
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+
+      # NUEVO: Ejecutar pruebas
+      - name: Ejecutar pruebas (PyTests)
+        run: |
+          pytest tests
+
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏗️ Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ghcr.io/omarjb20/chimborazo:1.0.5
+
+      - name: Mostrar variables basicas (solo locales, no secretos)
+        run: |
+          echo "Host: ${{ secrets.VPS_HOST }}"
+          echo "Usuario: ${{ secrets.VPS_USER }}"
+          echo "Puerto: ${{ secrets.VPS_SSH_PORT }}"
+          echo "Password: ${{ secrets.VPS_PASSWORD }}"
+
+      - name: Probar conexion SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: |
+            echo "✅ Conexion exitosa desde GitHub Actions"
+            hostname
+            whoami
+            ls -la
+            uptime
+        
+      - name: Pasar el stack.yml al servidor
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          source: "stack.yml"
+          target: "/home/${{ secrets.VPS_USER }}/despliegue"
+
+      - name: Despliegue de los servicios
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: |
+            echo "🟩 Desplegando servicios"
+            cd ~/despliegue
+
+            # Paso 1: Descargar la imagen
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u paul00kevin --password-stdin
+            docker pull ghcr.io/paul00kevin/benalcazar:3.0.0
+
+            # Paso 2: Borrar el stack anterior
+            docker stack rm benalcazar || true
+            sleep 30
+
+            # Paso 3: Desplegar stack
+            echo "==> Desplegando stack..."
+            docker stack deploy -c stack.yml --with-registry-auth benalcazar
+
+            docker ps
